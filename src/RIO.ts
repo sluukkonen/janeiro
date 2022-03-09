@@ -406,6 +406,197 @@ export function combine<R1, A1, R2, A2, R3, A3, O>(
   effect2: RIO<R2, A2>,
   effect3: RIO<R3, A3>
 ): RIO<R1 & R2 & R3, O>
+export function combine<R1, A1, R2, A2, R3, A3, R4, A4, O>(
+  fn: (value1: A1, value2: A2, value3: A3, value4: A4) => O,
+  effect1: RIO<R1, A1>,
+  effect2: RIO<R2, A2>,
+  effect3: RIO<R3, A3>,
+  effect4: RIO<R4, A4>
+): RIO<R1 & R2 & R3 & R4, O>
+export function combine<R1, A1, R2, A2, R3, A3, R4, A4, R5, A5, O>(
+  fn: (value1: A1, value2: A2, value3: A3, value4: A4, value5: A5) => O,
+  effect1: RIO<R1, A1>,
+  effect2: RIO<R2, A2>,
+  effect3: RIO<R3, A3>,
+  effect4: RIO<R4, A4>,
+  effect5: RIO<R5, A5>
+): RIO<R1 & R2 & R3 & R4 & R5, O>
+export function combine<R1, A1, R2, A2, R3, A3, R4, A4, R5, A5, R6, A6, O>(
+  fn: (
+    value1: A1,
+    value2: A2,
+    value3: A3,
+    value4: A4,
+    value5: A5,
+    value6: A6
+  ) => O,
+  effect1: RIO<R1, A1>,
+  effect2: RIO<R2, A2>,
+  effect3: RIO<R3, A3>,
+  effect4: RIO<R4, A4>,
+  effect5: RIO<R5, A5>,
+  effect6: RIO<R6, A6>
+): RIO<R1 & R2 & R3 & R4 & R5 & R6, O>
+export function combine<
+  R1,
+  A1,
+  R2,
+  A2,
+  R3,
+  A3,
+  R4,
+  A4,
+  R5,
+  A5,
+  R6,
+  A6,
+  R7,
+  A7,
+  O
+>(
+  fn: (
+    value1: A1,
+    value2: A2,
+    value3: A3,
+    value4: A4,
+    value5: A5,
+    value6: A6,
+    value7: A7
+  ) => O,
+  effect1: RIO<R1, A1>,
+  effect2: RIO<R2, A2>,
+  effect3: RIO<R3, A3>,
+  effect4: RIO<R4, A4>,
+  effect5: RIO<R5, A5>,
+  effect6: RIO<R6, A6>,
+  effect7: RIO<R7, A7>
+): RIO<R1 & R2 & R3 & R4 & R5 & R6 & R7, O>
+export function combine<
+  R1,
+  A1,
+  R2,
+  A2,
+  R3,
+  A3,
+  R4,
+  A4,
+  R5,
+  A5,
+  R6,
+  A6,
+  R7,
+  A7,
+  R8,
+  A8,
+  O
+>(
+  fn: (
+    value1: A1,
+    value2: A2,
+    value3: A3,
+    value4: A4,
+    value5: A5,
+    value6: A6,
+    value7: A7,
+    value8: A8
+  ) => O,
+  effect1: RIO<R1, A1>,
+  effect2: RIO<R2, A2>,
+  effect3: RIO<R3, A3>,
+  effect4: RIO<R4, A4>,
+  effect5: RIO<R5, A5>,
+  effect6: RIO<R6, A6>,
+  effect7: RIO<R7, A7>,
+  effect8: RIO<R8, A8>
+): RIO<R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8, O>
+export function combine<
+  R1,
+  A1,
+  R2,
+  A2,
+  R3,
+  A3,
+  R4,
+  A4,
+  R5,
+  A5,
+  R6,
+  A6,
+  R7,
+  A7,
+  R8,
+  A8,
+  R9,
+  A9,
+  O
+>(
+  fn: (
+    value1: A1,
+    value2: A2,
+    value3: A3,
+    value4: A4,
+    value5: A5,
+    value6: A6,
+    value7: A7,
+    value8: A8,
+    value9: A9
+  ) => O,
+  effect1: RIO<R1, A1>,
+  effect2: RIO<R2, A2>,
+  effect3: RIO<R3, A3>,
+  effect4: RIO<R4, A4>,
+  effect5: RIO<R5, A5>,
+  effect6: RIO<R6, A6>,
+  effect7: RIO<R7, A7>,
+  effect8: RIO<R8, A8>,
+  effect9: RIO<R9, A9>
+): RIO<R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9, O>
+export function combine<
+  R1,
+  A1,
+  R2,
+  A2,
+  R3,
+  A3,
+  R4,
+  A4,
+  R5,
+  A5,
+  R6,
+  A6,
+  R7,
+  A7,
+  R8,
+  A8,
+  R9,
+  A9,
+  R10,
+  A10,
+  O
+>(
+  fn: (
+    value1: A1,
+    value2: A2,
+    value3: A3,
+    value4: A4,
+    value5: A5,
+    value6: A6,
+    value7: A7,
+    value8: A8,
+    value9: A9,
+    value10: A10
+  ) => O,
+  effect1: RIO<R1, A1>,
+  effect2: RIO<R2, A2>,
+  effect3: RIO<R3, A3>,
+  effect4: RIO<R4, A4>,
+  effect5: RIO<R5, A5>,
+  effect6: RIO<R6, A6>,
+  effect7: RIO<R7, A7>,
+  effect8: RIO<R8, A8>,
+  effect9: RIO<R9, A9>,
+  effect10: RIO<R10, A10>
+): RIO<R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9 & R10, O>
 export function combine<R, A, B>(
   fn: (...values: readonly A[]) => B,
   ...effects: readonly RIO<R, A>[]
