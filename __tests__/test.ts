@@ -2,7 +2,7 @@ import { TimeoutError } from "../src/errors"
 import * as F from "../src/RIO"
 
 describe("F.success", () => {
-  it("creates a succesful effect", async () => {
+  it("creates a successful effect", async () => {
     const effect = F.success(1)
     await expect(effect.run(null)).resolves.toBe(1)
   })
@@ -16,7 +16,7 @@ describe("F.failure", () => {
 })
 
 describe("F.fromPromise", () => {
-  it("creates an succesful effect from a resolved promise", async () => {
+  it("creates an successful effect from a resolved promise", async () => {
     const effect = F.fromPromise(() => Promise.resolve(1))
     await expect(effect.run(null)).resolves.toBe(1)
   })
@@ -59,7 +59,7 @@ describe("F.effect", () => {
 })
 
 describe("F.function", () => {
-  it("creates a succesful effect from a synchronous function", async () => {
+  it("creates a successful effect from a synchronous function", async () => {
     const effect = F.fromFunction((env: number) => env + 1)
     await expect(effect.run(1)).resolves.toBe(2)
   })
@@ -166,7 +166,7 @@ describe("RIO#timeout", () => {
     await expect(effect.run(null)).rejects.toThrow(TimeoutError)
   })
 
-  it("returns the preceding effect if the execution is fast eough", async () => {
+  it("returns the preceding effect if the execution is fast enough", async () => {
     const effect = F.success(1).timeout(200)
     await expect(effect.run(null)).resolves.toBe(1)
   })
