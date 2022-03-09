@@ -38,7 +38,8 @@ export class RIO<R, A> {
    *
    * @example
    *
-   * const two = F.success(1).map((n) => n + 1)
+   * await F.success(1).map((n) => n + 1).run(null)
+   * // => 2
    */
   map<B>(fn: (value: A) => B): RIO<R, B> {
     return new RIO(async (env) => fn(await this.unsafeRun(env)))
@@ -49,12 +50,8 @@ export class RIO<R, A> {
    *
    * @example
    *
-   * const random = F.fromFunction(Math.random)
-   * const test = random.flatMap((n) => n > 0.5 ? F.success("OK!") : F.failure(new Error("Too small!")))
-   * await test.run(null)
-   * // => "OK!"
-   * await test.run(null)
-   * // => Error: Too small!
+   * await F.success(1).flatMap((n) => F.success(n + 1)).run(null)
+   * // => 2
    */
   flatMap<R1, B>(fn: (value: A) => RIO<R1, B>): RIO<R & R1, B> {
     return new RIO(async (env) => fn(await this.unsafeRun(env)).unsafeRun(env))
