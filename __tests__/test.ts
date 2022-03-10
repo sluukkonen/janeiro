@@ -338,3 +338,39 @@ describe("F.bracket", () => {
     expect(use).toHaveBeenCalledTimes(0)
   })
 })
+
+describe("F.props", () => {
+  it("combines an object of effects", async () => {
+    const effect = F.props({
+      a: F.success(1),
+      b: F.success(2),
+      c: F.success(3),
+    })
+
+    await expect(effect.run(null)).resolves.toEqual({ a: 1, b: 2, c: 3 })
+  })
+
+  it("fails if any of the effects fail", async () => {
+    const effect = F.props({
+      a: F.success(1),
+      b: F.success(2),
+      c: F.failure("Boom!"),
+    })
+
+    await expect(effect.run(null)).rejects.toBe("Boom!")
+  })
+
+  it("works in parallel", async () => {
+    const fn = jest.fn(() => {
+      throw "Boom!"
+    })
+    const effect = F.props({
+      a: F.fromFunction(fn),
+      b: F.fromFunction(fn),
+      c: F.fromFunction(fn),
+    })
+
+    await expect(effect.run(null)).rejects.toBe("Boom!")
+    expect(fn).toHaveBeenCalledTimes(3)
+  })
+})

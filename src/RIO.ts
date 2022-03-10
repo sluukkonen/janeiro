@@ -1,8 +1,10 @@
 import { TimeoutError } from "./errors"
-import { identity, delay } from "./util"
+import { delay, identity } from "./util"
 
 /** An effect that can be run with any environment. */
 export type IO<A> = RIO<unknown, A>
+
+type Result<T> = T extends RIO<unknown, infer A> ? A : never
 
 type CollectEnvironment<T extends readonly unknown[]> =
   // Is it a tuple?
@@ -446,5 +448,17 @@ export function any<R, A>(effects: readonly RIO<R, A>[]): RIO<R, A> {
       promises.push(effect.run(env))
     }
     return Promise.any(promises)
+  })
+}
+
+export function props<T extends Record<string, RIO<any, unknown>>>( // eslint-disable-line @typescript-eslint/no-explicit-any
+  object: T
+): RIO<CollectEnvironment<T[keyof T][]>, { [K in keyof T]: Result<T[K]> }> {
+  return new RIO(async (env) => {
+    const entries = Object.entries(object)
+    const newEntries = await Promise.all(
+      entries.map(async ([key, effect]) => [key, await effect.unsafeRun(env)])
+    )
+    return Object.fromEntries(newEntries)
   })
 }
