@@ -294,7 +294,7 @@ export function fromNodeCallback<A>(
   })
 }
 
-export function traverse<R, A, B>(
+export function mapSeries<R, A, B>(
   values: readonly A[],
   fn: (value: A) => RIO<R, B>
 ): RIO<R, B[]> {
@@ -307,7 +307,7 @@ export function traverse<R, A, B>(
   })
 }
 
-export function traversePar<R, A, B>(
+export function map<R, A, B>(
   values: readonly A[],
   fn: (value: A) => RIO<R, B>
 ): RIO<R, B[]> {
@@ -322,10 +322,10 @@ export function traversePar<R, A, B>(
 
 // This `any` seems to be necessary.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function sequence<T extends readonly RIO<any, unknown>[] | []>(
+export function allSeries<T extends readonly RIO<any, unknown>[] | []>(
   effects: T
 ): RIO<CollectEnvironment<T>, CollectResults<T>> {
-  return traverse(effects, identity) as RIO<
+  return mapSeries(effects, identity) as RIO<
     CollectEnvironment<T>,
     CollectResults<T>
   >
@@ -333,27 +333,24 @@ export function sequence<T extends readonly RIO<any, unknown>[] | []>(
 
 // This `any` seems to be necessary.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function sequencePar<T extends readonly RIO<any, unknown>[] | []>(
+export function all<T extends readonly RIO<any, unknown>[] | []>(
   effects: T
 ): RIO<CollectEnvironment<T>, CollectResults<T>> {
-  return traversePar(effects, identity) as RIO<
-    CollectEnvironment<T>,
-    CollectResults<T>
-  >
+  return map(effects, identity) as RIO<CollectEnvironment<T>, CollectResults<T>>
+}
+
+export function forEachSeries<R, A, B>(
+  values: readonly A[],
+  fn: (value: A) => RIO<R, B>
+): RIO<R, void> {
+  return mapSeries(values, fn).map(noop)
 }
 
 export function forEach<R, A, B>(
   values: readonly A[],
   fn: (value: A) => RIO<R, B>
 ): RIO<R, void> {
-  return traverse(values, fn).map(noop)
-}
-
-export function forEachPar<R, A, B>(
-  values: readonly A[],
-  fn: (value: A) => RIO<R, B>
-): RIO<R, void> {
-  return traversePar(values, fn).map(noop)
+  return map(values, fn).map(noop)
 }
 
 export function reduce<R, A, B>(
