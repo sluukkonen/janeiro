@@ -229,7 +229,7 @@ export function failure(error: unknown): RIO<unknown, never> {
 
 /**
  * Create an effect that may use values from the environment. This is the main
- * building block for creating complex effects.
+ * building block for creating more complex effects.
  *
  * @example
  *
@@ -246,6 +246,11 @@ export function effect<R, A>(createEffect: (env: R) => RIO<R, A>): RIO<R, A> {
 
 /**
  * Create an effect from a synchronous function.
+ *
+ * @see {@link fromPromise}
+ * @example
+ *
+ * const now = F.fromFunction(Date.now)
  */
 export function fromFunction<R, A>(fn: (env: R) => A): RIO<R, A> {
   return new RIO((env) => Promise.resolve(fn(env)))
@@ -254,9 +259,10 @@ export function fromFunction<R, A>(fn: (env: R) => A): RIO<R, A> {
 /**
  * Create an effect from a function returning a promise.
  *
+ * @see {@link fromFunction}
  * @example
  *
- * const one = F.fromPromise((env) => Promise.resolve(1))
+ * const response = F.fromPromise(() => fetch("https://example.com"))
  */
 export function fromPromise<R, A>(
   createPromise: (env: R) => PromiseLike<A>
@@ -267,9 +273,10 @@ export function fromPromise<R, A>(
 /**
  * Create an effect from a simple callback.
  *
+ * @see {@link fromNodeCallback}
  * @example
  *
- * const delay = (millis: number) => F.fromCallback((done) => setTimeout(done, millis))
+ * const delay = (millis) => F.fromCallback((done) => setTimeout(done, millis))
  */
 export function fromCallback<R, A>(
   fn: (callback: (value: A) => void, env: R) => void
@@ -280,20 +287,32 @@ export function fromCallback<R, A>(
 /**
  * Create an effect from a node-style callback.
  *
+ * @see {@link fromCallback}
  * @example
  *
- * const file = F.fromNodeCallback((cb, env) => fs.readFile("file.txt", "utf-8", cb))
+ * const readFile = F.fromNodeCallback((cb) => fs.readFile("file.txt", "utf-8", cb))
  */
-export function fromNodeCallback<A>(
-  fn: (callback: (err: unknown, value?: A) => void) => void
-): RIO<unknown, A> {
-  return new RIO(() => {
+export function fromNodeCallback<R, A>(
+  fn: (callback: (err: unknown, value?: A) => void, env: R) => void
+): RIO<R, A> {
+  return new RIO((env) => {
     return new Promise((resolve, reject) =>
-      fn((err, value) => (err != null ? reject(err) : resolve(value as A)))
+      fn((err, value) => (err != null ? reject(err) : resolve(value as A)), env)
     )
   })
 }
 
+/**
+ * Map each element of an array to an effect, and collect the results into an
+ * array. Works serially.
+ *
+ * @see {@link map}
+ * @see {@link allSeries}
+ * @example
+ *
+ * await F.mapSeries([1, 2, 3], (n) => F.success(n + 1)).run(null)
+ * // => [2, 3, 4]
+ */
 export function mapSeries<R, A, B>(
   values: readonly A[],
   fn: (value: A) => RIO<R, B>
@@ -307,6 +326,18 @@ export function mapSeries<R, A, B>(
   })
 }
 
+/**
+ * Map each element of an array to an effect and collect the results into an
+ * array.
+ *
+ * @see {@link mapSeries}
+ * @see {@link all}
+ * @example
+ *
+ * await F.map([1, 2, 3], (n) => F.success(n + 1)).run(null)
+ * // => [2, 3, 4]
+ *
+ */
 export function map<R, A, B>(
   values: readonly A[],
   fn: (value: A) => RIO<R, B>
@@ -320,9 +351,17 @@ export function map<R, A, B>(
   })
 }
 
-// This `any` seems to be necessary.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function allSeries<T extends readonly RIO<any, unknown>[] | []>(
+/**
+ * Run an array of effects serially and collect the results into an array.
+ *
+ * @see {@link all}
+ * @see {@link mapSeries}
+ * @example
+ *
+ * await F.allSeries([F.success(1), F.success(2)]).run(null)
+ * // => [1, 2]
+ */
+export function allSeries<T extends readonly RIO<any, unknown>[] | []>( // eslint-disable-line @typescript-eslint/no-explicit-any
   effects: T
 ): RIO<CollectEnvironment<T>, CollectResults<T>> {
   return mapSeries(effects, identity) as RIO<
@@ -331,9 +370,17 @@ export function allSeries<T extends readonly RIO<any, unknown>[] | []>(
   >
 }
 
-// This `any` seems to be necessary.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function all<T extends readonly RIO<any, unknown>[] | []>(
+/**
+ * Run an array of effects in parallel and collect the results into an array.
+ *
+ * @see {@link allSeries}
+ * @see {@link map}
+ * @example
+ *
+ * await F.all([F.success(1), F.success(2)]).run(null)
+ * // => [1, 2]
+ */
+export function all<T extends readonly RIO<any, unknown>[] | []>( // eslint-disable-line @typescript-eslint/no-explicit-any
   effects: T
 ): RIO<CollectEnvironment<T>, CollectResults<T>> {
   return map(effects, identity) as RIO<CollectEnvironment<T>, CollectResults<T>>
