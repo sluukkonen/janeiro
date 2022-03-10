@@ -100,20 +100,6 @@ describe("RIO#flatMap", () => {
   })
 })
 
-describe("RIO#zip", () => {
-  it("zips together two effects", async () => {
-    const effect = F.success(1).zip(F.success(2))
-    await expect(effect.run(null)).resolves.toEqual([1, 2])
-  })
-})
-
-describe("RIO#zipWith", () => {
-  it("combines the values of two effects using the specified function", async () => {
-    const effect = F.success(1).zipWith(F.success(2), Math.max)
-    await expect(effect.run(null)).resolves.toBe(2)
-  })
-})
-
 describe("RIO#catch", () => {
   it("executes the function if the preceding effect fails", async () => {
     const effect = F.success(1)

@@ -1,5 +1,5 @@
 import { TimeoutError } from "./errors"
-import { identity, delay, pair, noop } from "./util"
+import { identity, delay, noop } from "./util"
 
 /** An effect that can be run with any environment. */
 export type IO<A> = RIO<unknown, A>
@@ -79,39 +79,6 @@ export class RIO<R, A> {
    */
   flatMap<R1, B>(fn: (value: A) => RIO<R1, B>): RIO<R & R1, B> {
     return new RIO(async (env) => fn(await this.unsafeRun(env)).unsafeRun(env))
-  }
-
-  /**
-   * Sequentially combine two effects into a pair.
-   *
-   * @see {@link RIO.zipWith}
-   * @example
-   *
-   * await F.success(1).zip(F.success(2)).run(null)
-   * // => [1, 2]
-   *
-   */
-  zip<R1, B>(that: RIO<R1, B>): RIO<R & R1, [A, B]> {
-    return this.zipWith(that, pair)
-  }
-
-  /**
-   * Sequentially combine two effects using the specified function.
-   *
-   * @see {@link RIO.zip}
-   * @example
-   *
-   * await F.success(1).zipWith(F.success(2), Math.max).run(null)
-   * // => 2
-   *
-   */
-  zipWith<R1, B, C>(
-    that: RIO<R1, B>,
-    fn: (first: A, second: B) => C
-  ): RIO<R & R1, C> {
-    return new RIO(async (env) => {
-      return fn(await this.unsafeRun(env), await that.unsafeRun(env))
-    })
   }
 
   /**
