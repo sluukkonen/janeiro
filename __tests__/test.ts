@@ -271,48 +271,6 @@ describe("F.map", () => {
   })
 })
 
-describe("F.forEachSeries", () => {
-  it("maps each element of an array to an action, ignoring the return value", async () => {
-    const effect = F.forEachSeries([1, 2, 3], F.success)
-    await expect(effect.run(null)).resolves.toBeUndefined()
-  })
-
-  it("fails if any of the effects fail", async () => {
-    const effect = F.forEachSeries([1, 2, 3], (n) =>
-      n === 1 ? F.failure("Boom!") : F.success(n)
-    )
-    await expect(effect.run(null)).rejects.toBe("Boom!")
-  })
-
-  it("works sequentially", async () => {
-    const fn = jest.fn(() => F.failure("Boom!"))
-    const effect = F.forEachSeries([1, 2, 3], fn)
-    await expect(effect.run(null)).rejects.toBe("Boom!")
-    expect(fn).toHaveBeenCalledTimes(1)
-  })
-})
-
-describe("F.forEach", () => {
-  it("maps each element of an array to an action, ignoring the return value", async () => {
-    const effect = F.forEach([1, 2, 3], F.success)
-    await expect(effect.run(null)).resolves.toBeUndefined()
-  })
-
-  it("fails if any of the effects fail", async () => {
-    const effect = F.forEach([1, 2, 3], (n) =>
-      n === 1 ? F.failure("Boom!") : F.success(n)
-    )
-    await expect(effect.run(null)).rejects.toBe("Boom!")
-  })
-
-  it("works in parallel", async () => {
-    const fn = jest.fn(() => F.failure("Boom!"))
-    const effect = F.forEach([1, 2, 3], fn)
-    await expect(effect.run(null)).rejects.toBe("Boom!")
-    expect(fn).toHaveBeenCalledTimes(3)
-  })
-})
-
 describe("F.reduce", () => {
   it("reduces an array of values effectfully", async () => {
     const effect = F.reduce([1, 2, 3], 0, (a, b) => F.success(a + b))

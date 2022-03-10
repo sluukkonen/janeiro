@@ -1,5 +1,5 @@
 import { TimeoutError } from "./errors"
-import { identity, delay, noop } from "./util"
+import { identity, delay } from "./util"
 
 /** An effect that can be run with any environment. */
 export type IO<A> = RIO<unknown, A>
@@ -337,20 +337,6 @@ export function all<T extends readonly RIO<any, unknown>[] | []>(
   effects: T
 ): RIO<CollectEnvironment<T>, CollectResults<T>> {
   return map(effects, identity) as RIO<CollectEnvironment<T>, CollectResults<T>>
-}
-
-export function forEachSeries<R, A, B>(
-  values: readonly A[],
-  fn: (value: A) => RIO<R, B>
-): RIO<R, void> {
-  return mapSeries(values, fn).map(noop)
-}
-
-export function forEach<R, A, B>(
-  values: readonly A[],
-  fn: (value: A) => RIO<R, B>
-): RIO<R, void> {
-  return map(values, fn).map(noop)
 }
 
 export function reduce<R, A, B>(
