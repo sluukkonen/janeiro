@@ -292,7 +292,7 @@ describe("F.traversePar", () => {
 describe("F.forEach", () => {
   it("maps each element of an array to an action, ignoring the return value", async () => {
     const effect = F.forEach([1, 2, 3], F.success)
-    await expect(effect.run(null)).resolves.toBe(undefined)
+    await expect(effect.run(null)).resolves.toBeUndefined()
   })
 
   it("fails if any of the effects fail", async () => {
@@ -313,7 +313,7 @@ describe("F.forEach", () => {
 describe("F.forEachPar", () => {
   it("maps each element of an array to an action, ignoring the return value", async () => {
     const effect = F.forEachPar([1, 2, 3], F.success)
-    await expect(effect.run(null)).resolves.toBe(undefined)
+    await expect(effect.run(null)).resolves.toBeUndefined()
   })
 
   it("fails if any of the effects fail", async () => {
