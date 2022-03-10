@@ -345,42 +345,6 @@ describe("F.reduce", () => {
   })
 })
 
-describe("F.combine", () => {
-  it("combines a bunch of effects using a function", async () => {
-    const effect = F.combine(
-      (a, b, c) => a + b + c,
-      F.success(1),
-      F.success(2),
-      F.success(3)
-    )
-    await expect(effect.run(null)).resolves.toBe(6)
-  })
-
-  it("fails if any of the effects fail", async () => {
-    const effect = F.combine(
-      (a, b, c) => a + b + c,
-      F.success(1),
-      F.success(2),
-      F.failure("Boom!")
-    )
-    await expect(effect.run(null)).rejects.toBe("Boom!")
-  })
-
-  it("works sequentially", async () => {
-    const fn = jest.fn(() => {
-      throw "Boom!"
-    })
-    const effect = F.combine(
-      (a, b, c) => a + b + c,
-      F.fromFunction(fn),
-      F.fromFunction(fn),
-      F.fromFunction(fn)
-    )
-    await expect(effect.run(null)).rejects.toBe("Boom!")
-    await expect(fn).toHaveBeenCalledTimes(1)
-  })
-})
-
 describe("F.race", () => {
   it("returns the first effect that succeeds or fails", async () => {
     const effect1 = F.race([F.success(1), F.failure("Boom!").delay(10)])

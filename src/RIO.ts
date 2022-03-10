@@ -4,6 +4,20 @@ import { identity, delay, pair, noop } from "./util"
 /** An effect that can be run with any environment. */
 export type IO<A> = RIO<unknown, A>
 
+type CollectEnvironment<T extends readonly unknown[]> = T extends readonly [
+  RIO<infer R, unknown>,
+  ...infer Rest
+]
+  ? R & CollectEnvironment<Rest>
+  : unknown
+
+type CollectResults<T extends readonly unknown[]> = T extends readonly [
+  RIO<never, infer A>,
+  ...infer Rest
+]
+  ? [A, ...CollectResults<Rest>]
+  : []
+
 export class RIO<R, A> {
   constructor(
     /**
@@ -304,7 +318,7 @@ export function fromNodeCallback<A>(
 }
 
 export function traverse<R, A, B>(
-  values: Iterable<A>,
+  values: readonly A[],
   fn: (value: A) => RIO<R, B>
 ): RIO<R, B[]> {
   return new RIO(async (env) => {
@@ -317,7 +331,7 @@ export function traverse<R, A, B>(
 }
 
 export function traversePar<R, A, B>(
-  values: Iterable<A>,
+  values: readonly A[],
   fn: (value: A) => RIO<R, B>
 ): RIO<R, B[]> {
   return new RIO((env) => {
@@ -329,16 +343,26 @@ export function traversePar<R, A, B>(
   })
 }
 
-export function sequence<R, A>(effects: Iterable<RIO<R, A>>): RIO<R, A[]> {
-  return traverse(effects, identity)
+export function sequence<T extends readonly RIO<any, unknown>[] | []>(
+  effects: T
+): RIO<CollectEnvironment<T>, CollectResults<T>> {
+  return traverse(effects, identity) as RIO<
+    CollectEnvironment<T>,
+    CollectResults<T>
+  >
 }
 
-export function sequencePar<R, A>(effects: Iterable<RIO<R, A>>): RIO<R, A[]> {
-  return traversePar(effects, identity)
+export function sequencePar<T extends readonly RIO<any, unknown>[] | []>(
+  effects: T
+): RIO<CollectEnvironment<T>, CollectResults<T>> {
+  return traversePar(effects, identity) as RIO<
+    CollectEnvironment<T>,
+    CollectResults<T>
+  >
 }
 
 export function forEach<R, A, B>(
-  values: Iterable<A>,
+  values: readonly A[],
   fn: (value: A) => RIO<R, B>
 ): RIO<R, void> {
   return traverse(values, fn).map(noop)
@@ -392,216 +416,6 @@ export function bracket<R, A, B, C>(
       await release(resource).unsafeRun(env)
     }
   })
-}
-
-export function combine<R, A, O>(fn: (a: A) => O, a: RIO<R, A>): RIO<R, O>
-export function combine<R1, A1, R2, A2, O>(
-  fn: (value1: A1, value2: A2) => O,
-  effect1: RIO<R1, A1>,
-  effect2: RIO<R2, A2>
-): RIO<R1 & R2, O>
-export function combine<R1, A1, R2, A2, R3, A3, O>(
-  fn: (value1: A1, value2: A2, value3: A3) => O,
-  effect1: RIO<R1, A1>,
-  effect2: RIO<R2, A2>,
-  effect3: RIO<R3, A3>
-): RIO<R1 & R2 & R3, O>
-export function combine<R1, A1, R2, A2, R3, A3, R4, A4, O>(
-  fn: (value1: A1, value2: A2, value3: A3, value4: A4) => O,
-  effect1: RIO<R1, A1>,
-  effect2: RIO<R2, A2>,
-  effect3: RIO<R3, A3>,
-  effect4: RIO<R4, A4>
-): RIO<R1 & R2 & R3 & R4, O>
-export function combine<R1, A1, R2, A2, R3, A3, R4, A4, R5, A5, O>(
-  fn: (value1: A1, value2: A2, value3: A3, value4: A4, value5: A5) => O,
-  effect1: RIO<R1, A1>,
-  effect2: RIO<R2, A2>,
-  effect3: RIO<R3, A3>,
-  effect4: RIO<R4, A4>,
-  effect5: RIO<R5, A5>
-): RIO<R1 & R2 & R3 & R4 & R5, O>
-export function combine<R1, A1, R2, A2, R3, A3, R4, A4, R5, A5, R6, A6, O>(
-  fn: (
-    value1: A1,
-    value2: A2,
-    value3: A3,
-    value4: A4,
-    value5: A5,
-    value6: A6
-  ) => O,
-  effect1: RIO<R1, A1>,
-  effect2: RIO<R2, A2>,
-  effect3: RIO<R3, A3>,
-  effect4: RIO<R4, A4>,
-  effect5: RIO<R5, A5>,
-  effect6: RIO<R6, A6>
-): RIO<R1 & R2 & R3 & R4 & R5 & R6, O>
-export function combine<
-  R1,
-  A1,
-  R2,
-  A2,
-  R3,
-  A3,
-  R4,
-  A4,
-  R5,
-  A5,
-  R6,
-  A6,
-  R7,
-  A7,
-  O
->(
-  fn: (
-    value1: A1,
-    value2: A2,
-    value3: A3,
-    value4: A4,
-    value5: A5,
-    value6: A6,
-    value7: A7
-  ) => O,
-  effect1: RIO<R1, A1>,
-  effect2: RIO<R2, A2>,
-  effect3: RIO<R3, A3>,
-  effect4: RIO<R4, A4>,
-  effect5: RIO<R5, A5>,
-  effect6: RIO<R6, A6>,
-  effect7: RIO<R7, A7>
-): RIO<R1 & R2 & R3 & R4 & R5 & R6 & R7, O>
-export function combine<
-  R1,
-  A1,
-  R2,
-  A2,
-  R3,
-  A3,
-  R4,
-  A4,
-  R5,
-  A5,
-  R6,
-  A6,
-  R7,
-  A7,
-  R8,
-  A8,
-  O
->(
-  fn: (
-    value1: A1,
-    value2: A2,
-    value3: A3,
-    value4: A4,
-    value5: A5,
-    value6: A6,
-    value7: A7,
-    value8: A8
-  ) => O,
-  effect1: RIO<R1, A1>,
-  effect2: RIO<R2, A2>,
-  effect3: RIO<R3, A3>,
-  effect4: RIO<R4, A4>,
-  effect5: RIO<R5, A5>,
-  effect6: RIO<R6, A6>,
-  effect7: RIO<R7, A7>,
-  effect8: RIO<R8, A8>
-): RIO<R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8, O>
-export function combine<
-  R1,
-  A1,
-  R2,
-  A2,
-  R3,
-  A3,
-  R4,
-  A4,
-  R5,
-  A5,
-  R6,
-  A6,
-  R7,
-  A7,
-  R8,
-  A8,
-  R9,
-  A9,
-  O
->(
-  fn: (
-    value1: A1,
-    value2: A2,
-    value3: A3,
-    value4: A4,
-    value5: A5,
-    value6: A6,
-    value7: A7,
-    value8: A8,
-    value9: A9
-  ) => O,
-  effect1: RIO<R1, A1>,
-  effect2: RIO<R2, A2>,
-  effect3: RIO<R3, A3>,
-  effect4: RIO<R4, A4>,
-  effect5: RIO<R5, A5>,
-  effect6: RIO<R6, A6>,
-  effect7: RIO<R7, A7>,
-  effect8: RIO<R8, A8>,
-  effect9: RIO<R9, A9>
-): RIO<R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9, O>
-export function combine<
-  R1,
-  A1,
-  R2,
-  A2,
-  R3,
-  A3,
-  R4,
-  A4,
-  R5,
-  A5,
-  R6,
-  A6,
-  R7,
-  A7,
-  R8,
-  A8,
-  R9,
-  A9,
-  R10,
-  A10,
-  O
->(
-  fn: (
-    value1: A1,
-    value2: A2,
-    value3: A3,
-    value4: A4,
-    value5: A5,
-    value6: A6,
-    value7: A7,
-    value8: A8,
-    value9: A9,
-    value10: A10
-  ) => O,
-  effect1: RIO<R1, A1>,
-  effect2: RIO<R2, A2>,
-  effect3: RIO<R3, A3>,
-  effect4: RIO<R4, A4>,
-  effect5: RIO<R5, A5>,
-  effect6: RIO<R6, A6>,
-  effect7: RIO<R7, A7>,
-  effect8: RIO<R8, A8>,
-  effect9: RIO<R9, A9>,
-  effect10: RIO<R10, A10>
-): RIO<R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9 & R10, O>
-export function combine<R, A, B>(
-  fn: (...values: readonly A[]) => B,
-  ...effects: readonly RIO<R, A>[]
-): RIO<R, B> {
-  return sequence(effects).map((values) => fn(...values))
 }
 
 export function race<R, A>(effects: readonly RIO<R, A>[]): RIO<R, A> {
