@@ -4,19 +4,29 @@ import { identity, delay, pair, noop } from "./util"
 /** An effect that can be run with any environment. */
 export type IO<A> = RIO<unknown, A>
 
-type CollectEnvironment<T extends readonly unknown[]> = T extends readonly [
-  RIO<infer R, unknown>,
-  ...infer Rest
-]
-  ? R & CollectEnvironment<Rest>
-  : unknown
+type CollectEnvironment<T extends readonly unknown[]> =
+  // Is it a tuple?
+  T extends readonly [RIO<infer R, unknown>, ...infer Rest]
+    ? R & CollectEnvironment<Rest>
+    : // Terminate tuple recursion
+    T extends []
+    ? unknown
+    : // Is it an array?
+    T extends readonly RIO<infer R, unknown>[]
+    ? R
+    : never // Should never happen
 
-type CollectResults<T extends readonly unknown[]> = T extends readonly [
-  RIO<never, infer A>,
-  ...infer Rest
-]
-  ? [A, ...CollectResults<Rest>]
-  : []
+type CollectResults<T extends readonly unknown[]> =
+  // Is it a tuple?
+  T extends readonly [RIO<never, infer A>, ...infer Rest]
+    ? [A, ...CollectResults<Rest>]
+    : // Terminate tuple recursion.
+    T extends []
+    ? []
+    : // Is it an array?
+    T extends readonly RIO<never, infer A>[]
+    ? A[]
+    : never // Should never happen
 
 export class RIO<R, A> {
   constructor(
@@ -343,6 +353,8 @@ export function traversePar<R, A, B>(
   })
 }
 
+// This `any` seems to be necessary.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function sequence<T extends readonly RIO<any, unknown>[] | []>(
   effects: T
 ): RIO<CollectEnvironment<T>, CollectResults<T>> {
@@ -352,6 +364,8 @@ export function sequence<T extends readonly RIO<any, unknown>[] | []>(
   >
 }
 
+// This `any` seems to be necessary.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function sequencePar<T extends readonly RIO<any, unknown>[] | []>(
   effects: T
 ): RIO<CollectEnvironment<T>, CollectResults<T>> {
