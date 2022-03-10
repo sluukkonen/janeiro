@@ -6,10 +6,10 @@ export type IO<A> = RIO<unknown, A>
 
 type Result<T> = T extends RIO<unknown, infer A> ? A : never
 
-type CollectEnvironment<T extends readonly unknown[]> =
+type IntersectEnvironment<T extends readonly unknown[]> =
   // Is it a tuple?
   T extends readonly [RIO<infer R, unknown>, ...infer Rest]
-    ? R & CollectEnvironment<Rest>
+    ? R & IntersectEnvironment<Rest>
     : // Terminate tuple recursion
     T extends []
     ? unknown
@@ -28,6 +28,18 @@ type CollectResults<T extends readonly unknown[]> =
     : // Is it an array?
     T extends readonly RIO<never, infer A>[]
     ? A[]
+    : never // Should never happen
+
+type UnionResults<T extends readonly unknown[]> =
+  // Is it a tuple?
+  T extends readonly [RIO<never, infer A>, ...infer Rest]
+    ? A | UnionResults<Rest>
+    : // Terminate tuple recursion.
+    T extends []
+    ? never
+    : // Is it an array?
+    T extends readonly RIO<never, infer A>[]
+    ? A
     : never // Should never happen
 
 export class RIO<R, A> {
@@ -156,7 +168,7 @@ export class RIO<R, A> {
    */
   timeout(milliseconds: number): RIO<R, A> {
     return race([
-      this,
+      this as RIO<R, A>,
       new RIO(async () => {
         await delay(milliseconds)
         return Promise.reject(new TimeoutError(milliseconds))
@@ -365,9 +377,9 @@ export function map<R, A, B>(
  */
 export function allSeries<T extends readonly RIO<any, unknown>[] | []>( // eslint-disable-line @typescript-eslint/no-explicit-any
   effects: T
-): RIO<CollectEnvironment<T>, CollectResults<T>> {
+): RIO<IntersectEnvironment<T>, CollectResults<T>> {
   return mapSeries(effects, identity) as RIO<
-    CollectEnvironment<T>,
+    IntersectEnvironment<T>,
     CollectResults<T>
   >
 }
@@ -384,8 +396,11 @@ export function allSeries<T extends readonly RIO<any, unknown>[] | []>( // eslin
  */
 export function all<T extends readonly RIO<any, unknown>[] | []>( // eslint-disable-line @typescript-eslint/no-explicit-any
   effects: T
-): RIO<CollectEnvironment<T>, CollectResults<T>> {
-  return map(effects, identity) as RIO<CollectEnvironment<T>, CollectResults<T>>
+): RIO<IntersectEnvironment<T>, CollectResults<T>> {
+  return map(effects, identity) as RIO<
+    IntersectEnvironment<T>,
+    CollectResults<T>
+  >
 }
 
 export function reduce<R, A, B>(
@@ -431,29 +446,33 @@ export function bracket<R, A, B, C>(
   })
 }
 
-export function race<R, A>(effects: readonly RIO<R, A>[]): RIO<R, A> {
+export function race<T extends readonly RIO<any, unknown>[] | []>( // eslint-disable-line @typescript-eslint/no-explicit-any
+  effects: T
+): RIO<IntersectEnvironment<T>, UnionResults<T>> {
   return new RIO((env) => {
-    const promises: Promise<A>[] = []
+    const promises: Promise<unknown>[] = []
     for (const effect of effects) {
       promises.push(effect.run(env))
     }
-    return Promise.race(promises)
+    return Promise.race(promises) as Promise<UnionResults<T>>
   })
 }
 
-export function any<R, A>(effects: readonly RIO<R, A>[]): RIO<R, A> {
+export function any<T extends readonly RIO<any, unknown>[] | []>( // eslint-disable-line @typescript-eslint/no-explicit-any
+  effects: T
+): RIO<IntersectEnvironment<T>, UnionResults<T>> {
   return new RIO((env) => {
-    const promises: Promise<A>[] = []
+    const promises: Promise<unknown>[] = []
     for (const effect of effects) {
       promises.push(effect.run(env))
     }
-    return Promise.any(promises)
+    return Promise.any(promises) as Promise<UnionResults<T>>
   })
 }
 
 export function props<T extends Record<string, RIO<any, unknown>>>( // eslint-disable-line @typescript-eslint/no-explicit-any
   object: T
-): RIO<CollectEnvironment<T[keyof T][]>, { [K in keyof T]: Result<T[K]> }> {
+): RIO<IntersectEnvironment<T[keyof T][]>, { [K in keyof T]: Result<T[K]> }> {
   return new RIO(async (env) => {
     const entries = Object.entries(object)
     const newEntries = await Promise.all(
