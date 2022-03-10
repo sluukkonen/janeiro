@@ -33,7 +33,7 @@ export class RIO<R, A> {
     /**
      * An unsafe version of {@link RIO.run}.
      *
-     * Compared to {@link RIO.run}, this function is not guaranteed not to throw,
+     * Compared to {@link RIO.run}, this function is not guaranteed to not throw,
      * so unless you know what you're doing, you should use {@link RIO.run}
      * instead.
      *
