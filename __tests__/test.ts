@@ -1,5 +1,9 @@
-import { TimeoutError } from "../src/errors"
-import * as F from "../src/RIO"
+import * as F from "../src"
+
+const error = new Error("Boom!")
+const throwError = () => {
+  throw error
+}
 
 describe("F.success", () => {
   it("creates a successful effect", async () => {
@@ -10,8 +14,8 @@ describe("F.success", () => {
 
 describe("F.failure", () => {
   it("creates a failed effect", async () => {
-    const effect = F.failure("Boom!")
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    const effect = F.failure(error)
+    await expect(effect.run(null)).rejects.toThrow(error)
   })
 })
 
@@ -22,8 +26,8 @@ describe("F.fromPromise", () => {
   })
 
   it("creates a failed effect from a rejected promise", async () => {
-    const effect = F.fromPromise(() => Promise.reject("Boom!"))
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    const effect = F.fromPromise(() => Promise.reject(error))
+    await expect(effect.run(null)).rejects.toThrow(error)
   })
 
   it("provides the environment to the effect", async () => {
@@ -46,8 +50,8 @@ describe("F.fromNodeCallback", () => {
   })
 
   it("creates a failed effect if the first argument is not null", async () => {
-    const effect = F.fromNodeCallback((cb) => cb("Boom!"))
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    const effect = F.fromNodeCallback((cb) => cb(error))
+    await expect(effect.run(null)).rejects.toThrow(error)
   })
 })
 
@@ -65,10 +69,8 @@ describe("F.function", () => {
   })
 
   it("creates a failed effect if the function throws", async () => {
-    const effect = F.fromFunction(() => {
-      throw "Boom!"
-    })
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    const effect = F.fromFunction(throwError)
+    await expect(effect.run(null)).rejects.toThrow(error)
   })
 })
 
@@ -80,8 +82,8 @@ describe("RIO#map", () => {
 
   it("will not call the function if the effect fails", async () => {
     const fn = jest.fn()
-    const effect = F.failure("Boom!").map(fn)
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    const effect = F.failure(error).map(fn)
+    await expect(effect.run(null)).rejects.toThrow(error)
     expect(fn).toHaveBeenCalledTimes(0)
   })
 })
@@ -94,8 +96,8 @@ describe("RIO#flatMap", () => {
 
   it("will not call the function if the effect fails", async () => {
     const fn = jest.fn()
-    const effect = F.failure("Boom!").flatMap(fn)
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    const effect = F.failure(error).flatMap(fn)
+    await expect(effect.run(null)).rejects.toThrow(error)
     expect(fn).toHaveBeenCalledTimes(0)
   })
 })
@@ -103,7 +105,7 @@ describe("RIO#flatMap", () => {
 describe("RIO#catch", () => {
   it("executes the function if the preceding effect fails", async () => {
     const effect = F.success(1)
-      .flatMap((n) => (n === 0 ? F.success(n) : F.failure("Boom!")))
+      .flatMap((n) => (n === 0 ? F.success(n) : F.failure(error)))
       .catch(() => F.success(2))
     await expect(effect.run(null)).resolves.toBe(2)
   })
@@ -119,7 +121,7 @@ describe("RIO#catch", () => {
 describe("RIO#orElse", () => {
   it("executes the effect if the preceding effect fails", async () => {
     const effect = F.success(1)
-      .flatMap((n) => (n === 0 ? F.success(n) : F.failure("Boom!")))
+      .flatMap((n) => (n === 0 ? F.success(n) : F.failure(error)))
       .orElse(F.success(2))
     await expect(effect.run(null)).resolves.toBe(2)
   })
@@ -141,15 +143,15 @@ describe("RIO#finally", () => {
 
   it("executes the effect if the preceding effect fails", async () => {
     const fn = jest.fn()
-    const effect = F.failure("Boom!").finally(F.fromFunction(fn))
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    const effect = F.failure(error).finally(F.fromFunction(fn))
+    await expect(effect.run(null)).rejects.toThrow(error)
   })
 })
 
 describe("RIO#timeout", () => {
   it("fails if the execution of the effect takes too long", async () => {
     const effect = F.success(1).delay(10).timeout(0)
-    await expect(effect.run(null)).rejects.toThrow(TimeoutError)
+    await expect(effect.run(null)).rejects.toThrow(F.TimeoutError)
   })
 
   it("returns the preceding effect if the execution is fast enough", async () => {
@@ -190,18 +192,18 @@ describe("F.allSeries", () => {
   })
 
   it("fails if any of the effects fail", async () => {
-    const effect = F.allSeries([F.success(1), F.success(2), F.failure("Boom!")])
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    const effect = F.allSeries([F.success(1), F.success(2), F.failure(error)])
+    await expect(effect.run(null)).rejects.toThrow(error)
   })
 
   it("works sequentially", async () => {
     const fn = jest.fn()
     const effect = F.allSeries([
       F.fromFunction(fn),
-      F.failure("Boom!"),
+      F.failure(error),
       F.fromFunction(fn),
     ])
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    await expect(effect.run(null)).rejects.toThrow(error)
     expect(fn).toHaveBeenCalledTimes(1)
   })
 })
@@ -213,18 +215,18 @@ describe("F.all", () => {
   })
 
   it("fails if any of the effects fail", async () => {
-    const effect = F.all([F.success(1), F.success(2), F.failure("Boom!")])
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    const effect = F.all([F.success(1), F.success(2), F.failure(error)])
+    await expect(effect.run(null)).rejects.toThrow(error)
   })
 
   it("works in parallel", async () => {
     const fn = jest.fn()
     const effect = F.all([
-      F.failure("Boom!"),
+      F.failure(error),
       F.fromFunction(fn),
       F.fromFunction(fn),
     ])
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    await expect(effect.run(null)).rejects.toThrow(error)
     expect(fn).toHaveBeenCalledTimes(2)
   })
 })
@@ -237,15 +239,15 @@ describe("F.mapSeries", () => {
 
   it("fails if any of the effects fail", async () => {
     const effect = F.mapSeries([1, 2, 3], (n) =>
-      n === 1 ? F.failure("Boom!") : F.success(n)
+      n === 1 ? F.failure(error) : F.success(n)
     )
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    await expect(effect.run(null)).rejects.toThrow(error)
   })
 
   it("works sequentially", async () => {
-    const fn = jest.fn(() => F.failure("Boom!"))
+    const fn = jest.fn(() => F.failure(error))
     const effect = F.mapSeries([1, 2, 3], fn)
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    await expect(effect.run(null)).rejects.toThrow(error)
     expect(fn).toHaveBeenCalledTimes(1)
   })
 })
@@ -258,15 +260,15 @@ describe("F.map", () => {
 
   it("fails if any of the effects fail", async () => {
     const effect = F.map([1, 2, 3], (n) =>
-      n === 1 ? F.failure("Boom!") : F.success(n)
+      n === 1 ? F.failure(error) : F.success(n)
     )
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    await expect(effect.run(null)).rejects.toThrow(error)
   })
 
   it("works in parallel", async () => {
-    const fn = jest.fn(() => F.failure("Boom!"))
+    const fn = jest.fn(() => F.failure(error))
     const effect = F.map([1, 2, 3], fn)
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    await expect(effect.run(null)).rejects.toThrow(error)
     expect(fn).toHaveBeenCalledTimes(3)
   })
 })
@@ -279,28 +281,28 @@ describe("F.reduce", () => {
 
   it("fails if any of the effects fail", async () => {
     const effect = F.reduce([1, 2, 3], 0, (a, b) =>
-      b === 1 ? F.failure("Boom!") : F.success(a + b)
+      b === 1 ? F.failure(error) : F.success(a + b)
     )
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    await expect(effect.run(null)).rejects.toThrow(error)
   })
 })
 
 describe("F.race", () => {
   it("returns the first effect that succeeds or fails", async () => {
-    const effect1 = F.race([F.success(1), F.failure("Boom!").delay(10)])
+    const effect1 = F.race([F.success(1), F.failure(error).delay(10)])
     await expect(effect1.run(null)).resolves.toBe(1)
 
-    const effect2 = F.race([F.success(1).delay(10), F.failure("Boom!")])
-    await expect(effect2.run(null)).rejects.toBe("Boom!")
+    const effect2 = F.race([F.success(1).delay(10), F.failure(error)])
+    await expect(effect2.run(null)).rejects.toThrow(error)
   })
 })
 
 describe("F.any", () => {
   it("returns the first effect that succeeds", async () => {
-    const effect1 = F.any([F.success(1), F.failure("Boom!").delay(10)])
+    const effect1 = F.any([F.success(1), F.failure(error).delay(10)])
     await expect(effect1.run(null)).resolves.toBe(1)
 
-    const effect2 = F.any([F.success(1).delay(10), F.failure("Boom!")])
+    const effect2 = F.any([F.success(1).delay(10), F.failure(error)])
     await expect(effect2.run(null)).resolves.toBe(1)
   })
 })
@@ -309,9 +311,6 @@ describe("F.bracket", () => {
   const acquire = F.success("file")
   const release = jest.fn(() => F.success("closed"))
   const use = jest.fn((file: string) => F.success(file === "file"))
-  const boom = () => {
-    throw "Boom!"
-  }
 
   it("calls acquire and release", async () => {
     const effect = F.bracket(acquire, release, use)
@@ -322,17 +321,17 @@ describe("F.bracket", () => {
   })
 
   it("does not call release or use if acquire fails", async () => {
-    const effect = F.bracket(F.fromFunction(boom), release, use)
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    const effect = F.bracket(F.fromFunction(throwError), release, use)
+    await expect(effect.run(null)).rejects.toThrow(error)
 
     expect(release).toHaveBeenCalledTimes(0)
     expect(use).toHaveBeenCalledTimes(0)
   })
 
   it("calls release if use fails", async () => {
-    const use = jest.fn(boom)
-    const effect = F.bracket(acquire, release, boom)
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    const use = jest.fn(throwError)
+    const effect = F.bracket(acquire, release, throwError)
+    await expect(effect.run(null)).rejects.toThrow(error)
 
     expect(release).toHaveBeenCalledTimes(1)
     expect(use).toHaveBeenCalledTimes(0)
@@ -354,23 +353,21 @@ describe("F.props", () => {
     const effect = F.props({
       a: F.success(1),
       b: F.success(2),
-      c: F.failure("Boom!"),
+      c: F.failure(error),
     })
 
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    await expect(effect.run(null)).rejects.toThrow(error)
   })
 
   it("works in parallel", async () => {
-    const fn = jest.fn(() => {
-      throw "Boom!"
-    })
+    const fn = jest.fn(throwError)
     const effect = F.props({
       a: F.fromFunction(fn),
       b: F.fromFunction(fn),
       c: F.fromFunction(fn),
     })
 
-    await expect(effect.run(null)).rejects.toBe("Boom!")
+    await expect(effect.run(null)).rejects.toThrow(error)
     expect(fn).toHaveBeenCalledTimes(3)
   })
 })
