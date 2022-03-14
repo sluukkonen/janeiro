@@ -162,7 +162,7 @@ describe("RIO#delay", () => {
     const effect = RIO.success(1).delay(100)
     const start = Date.now()
     await expect(effect.run(null)).resolves.toBe(1)
-    expect(Date.now() - start).toBeGreaterThanOrEqual(100)
+    expect(Date.now() - start).toBeGreaterThanOrEqual(90)
   })
 })
 
