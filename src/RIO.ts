@@ -133,7 +133,7 @@ export class RIO<R, A> {
   /**
    * Execute this effect and return its result if it succeeds, otherwise execute the other effect.
    *
-   * ```a.orElse(b)` is syntactic sugar for `a.catch(() => b)`.
+   * `a.orElse(b)` is syntactic sugar for `a.catch(() => b)`.
    *
    * @see {@link RIO.catch}
    * @example
