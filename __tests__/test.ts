@@ -179,9 +179,40 @@ describe("RIO#provide", () => {
 describe("RIO#tap", () => {
   it("executes a function on an effect and returns its value", async () => {
     const fn = jest.fn()
-    const effect = F.success(1).tap(fn)
+    const sideEffect = () => F.fromFunction(fn)
+    const effect = F.success(1).tap(sideEffect)
     await expect(effect.run(null)).resolves.toBe(1)
     expect(fn).toHaveBeenCalledTimes(1)
+  })
+
+  it("fails if the side-effects fails", async () => {
+    const fn = jest.fn(throwError)
+    const sideEffect = () => F.fromFunction(fn)
+    const effect = F.success(1).tap(sideEffect)
+    await expect(effect.run(null)).rejects.toThrow(error)
+    expect(fn).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("RIO#log", () => {
+  it("logs the result of an effect with console.log", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    const spy = jest.spyOn(console, "log").mockImplementation(() => {})
+
+    const effect = F.success(1).log()
+    await expect(effect.run(null)).resolves.toBe(1)
+
+    expect(spy).toHaveBeenCalledWith(1)
+  })
+
+  it("supports format strings", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    const spy = jest.spyOn(console, "log").mockImplementation(() => {})
+
+    const effect = F.success(1).log("%s is a number")
+    await expect(effect.run(null)).resolves.toBe(1)
+
+    expect(spy).toHaveBeenCalledWith("%s is a number", 1)
   })
 })
 

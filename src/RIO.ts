@@ -211,10 +211,51 @@ export class RIO<R, A> {
     return new RIO(() => this.unsafeRun(env))
   }
 
-  tap(fn: (value: A) => void): RIO<R, A> {
-    return this.map((value) => {
-      fn(value)
-      return value
+  /**
+   * Sequentially compose two effects, returning the result of this effect.
+   *
+   * @see {@link RIO.flatMap}
+   * @example
+   *
+   * > const sayHello = (msg) => F.fromFunction(() => console.log(`Hello, ${msg}!`))
+   * undefined
+   * > await F.success("world").tap(sayHello).run(null)
+   * Hello, world!
+   * 'world'
+   */
+  tap<R1, B>(fn: (value: A) => RIO<R1, B>): RIO<R & R1, A> {
+    return new RIO(async (env) => {
+      const result = await this.unsafeRun(env)
+      await fn(result).unsafeRun(env)
+      return result
+    })
+  }
+
+  /**
+   * Returns an effect that logs the result of this effect with `console.log` and returns the result. Useful for
+   * debugging.
+   *
+   * @param formatString - An optional printf-style format string.
+   * @example
+   *
+   * > await F.success(1).log().run(null)
+   * 1
+   * 1
+   * > await F.success("world").log("Hello, %s!").run(null)
+   * Hello, world!
+   * 'world'
+   */
+  log(formatString?: string): RIO<R, A> {
+    return new RIO(async (env) => {
+      const result = await this.unsafeRun(env)
+
+      if (formatString) {
+        console.log(formatString, result)
+      } else {
+        console.log(result)
+      }
+
+      return result
     })
   }
 }
