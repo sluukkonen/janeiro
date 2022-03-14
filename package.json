@@ -6,6 +6,11 @@
   "engines": {
     "node": "^16.0.0"
   },
+  "exports": {
+    ".": {
+      "require": "./dist/index.js"
+    }
+  },
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "27.4.1",
@@ -22,7 +27,7 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc",
-    "repl": "yarn build && node -i -e 'const { RIO } = require(`./dist/index.js`)'",
+    "repl": "yarn build && node -i -e 'const { RIO } = require(`janeiro`)'",
     "lint": "eslint .",
     "test": "jest --coverage"
   }
