@@ -9,7 +9,7 @@
     "rootDir": "src",
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2021",
+    "target": "ESNext",
   },
   "include": ["src/*.ts"],
 }
