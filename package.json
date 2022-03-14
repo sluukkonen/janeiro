@@ -19,7 +19,7 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc",
-    "repl": "yarn build && node -i -e 'const F = require(`./dist/index.js`)'",
+    "repl": "yarn build && node -i -e 'const { RIO } = require(`./dist/index.js`)'",
     "lint": "eslint .",
     "test": "jest --coverage"
   }
