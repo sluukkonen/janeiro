@@ -2,14 +2,14 @@
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,
-    "lib": ["ES2021"],
-    "module": "CommonJS",
+    "lib": ["es2022"],
+    "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "dist",
     "rootDir": "src",
     "skipLibCheck": true,
     "strict": true,
-    "target": "ESNext",
+    "target": "es2022",
   },
   "include": ["src/*.ts"],
 }
