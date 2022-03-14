@@ -316,7 +316,7 @@ export class RIO<R, A> {
    * @see {@link fromPromise}
    * @example
    *
-   * > const now = RIO.fromFunction(Date.now).run(null)
+   * > const now = RIO.fromFunction(Date.now)
    * undefined
    * > await now.run(null)
    * 1647274623053
