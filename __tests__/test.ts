@@ -21,32 +21,27 @@ describe("F.failure", () => {
 
 describe("F.fromPromise", () => {
   it("creates an successful effect from a resolved promise", async () => {
-    const effect = F.fromPromise(() => Promise.resolve(1))
-    await expect(effect.run(null)).resolves.toBe(1)
+    const effect = F.fromPromise((env: number) => Promise.resolve(env + 1))
+    await expect(effect.run(1)).resolves.toBe(2)
   })
 
   it("creates a failed effect from a rejected promise", async () => {
     const effect = F.fromPromise(() => Promise.reject(error))
     await expect(effect.run(null)).rejects.toThrow(error)
   })
-
-  it("provides the environment to the effect", async () => {
-    const effect = F.fromPromise((env: number) => Promise.resolve(env + 1))
-    await expect(effect.run(1)).resolves.toBe(2)
-  })
 })
 
 describe("F.fromCallback", () => {
   it("creates an effect from a simple callback function", async () => {
-    const effect = F.fromCallback((cb) => cb(1))
-    await expect(effect.run(null)).resolves.toBe(1)
+    const effect = F.fromCallback((cb, env: number) => cb(env + 1))
+    await expect(effect.run(1)).resolves.toBe(2)
   })
 })
 
 describe("F.fromNodeCallback", () => {
   it("creates an effect from a node-style callback function", async () => {
-    const effect = F.fromNodeCallback((cb) => cb(null, 1))
-    await expect(effect.run(null)).resolves.toBe(1)
+    const effect = F.fromNodeCallback((cb, env: number) => cb(null, env + 1))
+    await expect(effect.run(1)).resolves.toBe(2)
   })
 
   it("creates a failed effect if the first argument is not null", async () => {
@@ -139,12 +134,14 @@ describe("RIO#finally", () => {
     const fn = jest.fn()
     const effect = F.success(1).finally(F.fromFunction(fn))
     await expect(effect.run(null)).resolves.toBe(1)
+    expect(fn).toHaveBeenCalledTimes(1)
   })
 
   it("executes the effect if the preceding effect fails", async () => {
     const fn = jest.fn()
     const effect = F.failure(error).finally(F.fromFunction(fn))
     await expect(effect.run(null)).rejects.toThrow(error)
+    expect(fn).toHaveBeenCalledTimes(1)
   })
 })
 

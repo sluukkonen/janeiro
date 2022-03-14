@@ -1,7 +1,11 @@
 import { TimeoutError } from "./errors"
 import { delay, identity } from "./util"
 
-/** An effect that can be run with any environment. */
+/**
+ * An effect that can be run with any environment.
+ *
+ * @see {@link RIO}
+ */
 export type IO<A> = RIO<unknown, A>
 
 type Result<T> = T extends RIO<unknown, infer A> ? A : never
@@ -42,6 +46,10 @@ type UnionResults<T extends readonly unknown[]> =
     ? A
     : never // Should never happen
 
+/**
+ * A RIO abstracts an effectful function of the form `(env: R) => Promise<A>`. Conceptually, it can be thought as a
+ * lazy promise that has access to some dependencies via the environment `R`.
+ */
 export class RIO<R, A> {
   constructor(
     /**
@@ -63,8 +71,10 @@ export class RIO<R, A> {
    *
    * @example
    *
-   * await F.success(1).map((n) => n + 1).run(null)
-   * // => 2
+   * > const one = F.success(1)
+   * undefined
+   * > await one.run(null)
+   * 1
    */
   async run(env: R): Promise<A> {
     return this.unsafeRun(env)
@@ -74,71 +84,76 @@ export class RIO<R, A> {
    * Return a new effect by applying a function to the value produced by this
    * effect.
    *
+   * @see {@link RIO.flatMap}
    * @example
    *
-   * await F.success(1).map((n) => n + 1).run(null)
-   * // => 2
+   * > const onePlusOne = F.success(1).map((n) => n + 1)
+   * undefined
+   * > await onePlusOne.run(null)
+   * 2
    */
   map<B>(fn: (value: A) => B): RIO<R, B> {
     return new RIO(async (env) => fn(await this.unsafeRun(env)))
   }
 
   /**
-   * Sequentially compose two effects, passing the value produced by this effect to the next.
+   * Sequentially compose two effects, passing the result of this effect to the next.
    *
+   * @see {@link RIO.map}
+   * @see {@link RIO.tap}
    * @example
    *
-   * await F.success(1).flatMap((n) => F.success(n + 1)).run(null)
-   * // => 2
+   * > const onePlusOne = F.success(1).flatMap((n) => F.success(n + 1))
+   * undefined
+   * > await onePlusOne.run(null)
+   * 2
    */
   flatMap<R1, B>(fn: (value: A) => RIO<R1, B>): RIO<R & R1, B> {
     return new RIO(async (env) => fn(await this.unsafeRun(env)).unsafeRun(env))
   }
 
   /**
-   * Execute this effect and return its value if it succeeds, otherwise execute
-   * the effect returned by the function.
+   * Returns an effect that executes this effect and returns its result if it succeeds, otherwise executing the
+   * effect returned by `catcher`.
    *
    * @see {@link RIO.finally}
    * @see {@link RIO.orElse}
    * @example
    *
-   * await F.failure(new Error("Boom!")).catch((err) => F.success(1)).run(null)
-   * // => 1
-   *
-   * await F.success(1).catch((err) => F.success(2)).run(null)
-   * // => 1
+   * > await F.failure(new Error("Boom!")).catch((err) => F.success(2)).run(null)
+   * 2
+   * > await F.success(1).catch((err) => F.success(2)).run(null)
+   * 1
    */
-  catch<R1>(fn: (error: unknown) => RIO<R1, A>): RIO<R & R1, A> {
+  catch<R1>(catcher: (error: unknown) => RIO<R1, A>): RIO<R & R1, A> {
     return new RIO(async (env) => {
       try {
         return await this.unsafeRun(env)
       } catch (err) {
-        return fn(err).unsafeRun(env)
+        return catcher(err).unsafeRun(env)
       }
     })
   }
 
   /**
-   * Execute this effect and return its value if it succeeds, otherwise execute the other effect.
+   * Execute this effect and return its result if it succeeds, otherwise execute the other effect.
    *
    * ```a.orElse(b)` is syntactic sugar for `a.catch(() => b)`.
    *
    * @see {@link RIO.catch}
    * @example
    *
-   * await F.failure(new Error("Boom!")).orElse(F.success(1))
-   * // => 1
-   *
-   * await F.success(1).orElse(F.success(2))
-   * // => 1
+   * > await F.failure(new Error("Boom!")).orElse(F.success(2))
+   * 2
+   * > await F.success(1).orElse(F.success(2))
+   * 1
    */
   orElse<R1>(that: RIO<R1, A>): RIO<R & R1, A> {
     return this.catch(() => that)
   }
 
   /**
-   * Return a new effect that executes the specified effect after this one, even if it fails.
+   * Return a new effect that executes the specified effect after this one, even if this effect fails.
    *
    * @see {@link bracket}
    * @example
@@ -147,7 +162,6 @@ export class RIO<R, A> {
    * const result = effectThatMayFail.finally(cleanup)
    *
    */
-
   finally<R1>(that: RIO<R1, void>): RIO<R & R1, A> {
     return new RIO(async (env) => {
       try {
@@ -163,8 +177,9 @@ export class RIO<R, A> {
    *
    * @example
    *
-   * await F.success(1).delay(1000).timeout(500).run(null)
-   * // => TimeoutError: Timeout exceeded: 500ms
+   * > await F.success(1).delay(1000).timeout(500).run(null)
+   * Uncaught TimeoutError: Timeout exceeded: 500ms
+   * }
    */
   timeout(milliseconds: number): RIO<R, A> {
     return race([
@@ -181,9 +196,8 @@ export class RIO<R, A> {
    *
    * @example
    *
-   * await F.success(1).delay(1000).run(null)
-   * // Wait one second…
-   * // => 1
+   * > await F.success(1).delay(1000).run(null)
+   * 1
    */
   delay(milliseconds: number): RIO<R, A> {
     return new RIO(async (env) => {
@@ -198,14 +212,12 @@ export class RIO<R, A> {
    *
    * @example
    *
-   * const plusOne = F.fromFunction((env) => env + 1)
-   *
-   * await plusOne.run(1)
-   * // => 2
-   *
-   * await plusOne.provide(1).run(null)
-   * // => 2
-   *
+   * > const plusOne = F.fromFunction((env) => env + 1)
+   * undefined
+   * > await plusOne.run(1)
+   * 2
+   * > await plusOne.provide(1).run(999)
+   * 2
    */
   provide(env: R): IO<A> {
     return new RIO(() => this.unsafeRun(env))
@@ -265,7 +277,10 @@ export class RIO<R, A> {
  *
  * @example
  *
- * const one = F.success(1)
+ * > const one = await F.success(1)
+ * undefined
+ * > await one.run(null)
+ * 1
  */
 export function success<A>(value: A): RIO<unknown, A> {
   return new RIO(() => Promise.resolve(value))
@@ -276,7 +291,11 @@ export function success<A>(value: A): RIO<unknown, A> {
  *
  * @example
  *
- * const error = F.failure(new Error("Boom!"))
+ * > const boom = F.failure(new Error("Boom!"))
+ * undefined
+ * > await boom.run(null)
+ * Uncaught Error: Boom!
+ *     at REPL11:1:40
  */
 export function failure(error: unknown): RIO<unknown, never> {
   return new RIO(() => Promise.reject(error))
@@ -288,12 +307,11 @@ export function failure(error: unknown): RIO<unknown, never> {
  *
  * @example
  *
- * export const getUser = (userId: number) =>
- *   F.effect<HasUserRepository & HasLogger, User>(
- *     ({ userRepository, logger }) => {
- *       logger.info("Getting user…")
- *       return userRepository.getUser(userId)
- *     })
+ * const getUser = (userId: number) =>
+ *   F.effect(({ userRepository, logger }: HasUserRepository & HasLogger) => {
+ *     logger.info("Getting user…")
+ *     return userRepository.getUser(userId)
+ *   })
  */
 export function effect<R, A>(createEffect: (env: R) => RIO<R, A>): RIO<R, A> {
   return new RIO((env) => createEffect(env).unsafeRun(env))
@@ -305,7 +323,10 @@ export function effect<R, A>(createEffect: (env: R) => RIO<R, A>): RIO<R, A> {
  * @see {@link fromPromise}
  * @example
  *
- * const now = F.fromFunction(Date.now)
+ * > const now = F.fromFunction(Date.now).run(null)
+ * undefined
+ * > await now.run(null)
+ * 1647274623053
  */
 export function fromFunction<R, A>(fn: (env: R) => A): RIO<R, A> {
   return new RIO((env) => Promise.resolve(fn(env)))
@@ -331,7 +352,10 @@ export function fromPromise<R, A>(
  * @see {@link fromNodeCallback}
  * @example
  *
- * const delay = (millis) => F.fromCallback((done) => setTimeout(done, millis))
+ * > const delay = (millis) => F.fromCallback((done) => setTimeout(done, millis))
+ * undefined
+ * > await delay(1000).map(() => 1).run(null)
+ * 1
  */
 export function fromCallback<R, A>(
   fn: (callback: (value: A) => void, env: R) => void
@@ -365,8 +389,8 @@ export function fromNodeCallback<R, A>(
  * @see {@link allSeries}
  * @example
  *
- * await F.mapSeries([1, 2, 3], (n) => F.success(n + 1)).run(null)
- * // => [2, 3, 4]
+ * > await F.mapSeries([1, 2, 3], (n) => F.success(n + 1)).run(null)
+ * [ 2, 3, 4 ]
  */
 export function mapSeries<R, A, B>(
   values: readonly A[],
@@ -389,8 +413,8 @@ export function mapSeries<R, A, B>(
  * @see {@link all}
  * @example
  *
- * await F.map([1, 2, 3], (n) => F.success(n + 1)).run(null)
- * // => [2, 3, 4]
+ * > await F.map([1, 2, 3], (n) => F.success(n + 1)).run(null)
+ * [ 2, 3, 4 ]
  *
  */
 export function map<R, A, B>(
@@ -413,8 +437,8 @@ export function map<R, A, B>(
  * @see {@link mapSeries}
  * @example
  *
- * await F.allSeries([F.success(1), F.success(2)]).run(null)
- * // => [1, 2]
+ * > await F.allSeries([F.success(1), F.success(2)]).run(null)
+ * [ 1, 2 ]
  */
 export function allSeries<T extends readonly RIO<any, unknown>[] | []>( // eslint-disable-line @typescript-eslint/no-explicit-any
   effects: T
@@ -432,8 +456,8 @@ export function allSeries<T extends readonly RIO<any, unknown>[] | []>( // eslin
  * @see {@link map}
  * @example
  *
- * await F.all([F.success(1), F.success(2)]).run(null)
- * // => [1, 2]
+ * > await F.all([F.success(1), F.success(2)]).run(null)
+ * [ 1, 2 ]
  */
 export function all<T extends readonly RIO<any, unknown>[] | []>( // eslint-disable-line @typescript-eslint/no-explicit-any
   effects: T
