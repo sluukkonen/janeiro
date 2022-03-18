@@ -136,6 +136,22 @@ export abstract class RIO<R, A> {
   static fromFunction<R, A>(fn: (env: R) => A): RIO<R, A> {
     return new FromFunction(fn)
   }
+
+  /**
+   * Create an effect from an asynchronous function returning a promise. The
+   * function receives the environment as the only argument.
+   *
+   * @example
+   *
+   * > const status = RIO.fromPromise(() => fetch("www.example.com").then((r) => r.status))
+   * undefined
+   * > await status.run(null)
+   * 200
+   *
+   */
+  static fromPromise<R, A>(fn: (env: R) => PromiseLike<A>): RIO<R, A> {
+    return new FromPromise(fn)
+  }
 }
 
 export const enum Tag {
@@ -144,6 +160,7 @@ export const enum Tag {
   Failure = 2,
   FlatMap = 3,
   FromFunction = 4,
+  FromPromise = 5,
 }
 
 export class Done<A> extends RIO<unknown, A> {
@@ -180,5 +197,11 @@ export class FlatMap<R, R1, A, B> extends RIO<R & R1, B> {
 export class FromFunction<R, A> extends RIO<R, A> {
   constructor(readonly fn: (env: R) => A) {
     super(Tag.FromFunction)
+  }
+}
+
+export class FromPromise<R, A> extends RIO<R, A> {
+  constructor(readonly fn: (env: R) => PromiseLike<A>) {
+    super(Tag.FromPromise)
   }
 }

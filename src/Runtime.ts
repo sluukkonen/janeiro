@@ -3,6 +3,7 @@ import {
   Failure,
   FlatMap,
   FromFunction,
+  FromPromise,
   IO,
   RIO,
   Success,
@@ -46,6 +47,11 @@ export class Runtime {
         case Tag.FromFunction: {
           const eff = current as FromFunction<unknown, unknown>
           current = this.runContinuation(eff.fn(env))
+          break
+        }
+        case Tag.FromPromise: {
+          const eff = current as FromPromise<unknown, unknown>
+          current = this.runContinuation(await eff.fn(env))
           break
         }
       }

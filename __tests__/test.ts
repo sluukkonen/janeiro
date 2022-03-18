@@ -1,6 +1,9 @@
 import { RIO } from "../src"
 
 const error = new Error("Boom!")
+const throwError = () => {
+  throw error
+}
 const fail = (n: number): RIO<unknown, number> => {
   if (n >= 0) return RIO.failure(error)
   else return RIO.success(0)
@@ -53,7 +56,7 @@ describe("RIO#flatMap", () => {
 })
 
 describe("RIO#fromFunction", () => {
-  it("creates a new effect from a function", async () => {
+  it("creates a new effect from a synchronous function", async () => {
     const one = RIO.fromFunction(() => 1)
     await expect(one.run(null)).resolves.toBe(1)
   })
@@ -61,5 +64,32 @@ describe("RIO#fromFunction", () => {
   it("receives the environment as an argument", async () => {
     const plusOne = RIO.fromFunction(inc)
     await expect(plusOne.run(1)).resolves.toBe(2)
+  })
+
+  it("Resolves to a rejected promise if the function throws", async () => {
+    const boom = RIO.fromFunction(throwError)
+    await expect(boom.run(null)).rejects.toThrow(error)
+  })
+})
+
+describe("RIO#fromPromise", () => {
+  it("creates a new effect from an asynchronous function", async () => {
+    const one = RIO.fromPromise(async () => 1)
+    await expect(one.run(null)).resolves.toBe(1)
+  })
+
+  it("receives the environment as an argument", async () => {
+    const plusOne = RIO.fromPromise(async (env: number) => env + 1)
+    await expect(plusOne.run(1)).resolves.toBe(2)
+  })
+
+  it("resolves to a rejected promise if the promise rejects", async () => {
+    const boom = RIO.fromPromise(() => Promise.reject(error))
+    await expect(boom.run(null)).rejects.toThrow(error)
+  })
+
+  it("resolves to a rejected promise if the function throws", async () => {
+    const boom = RIO.fromPromise(throwError)
+    await expect(boom.run(null)).rejects.toThrow(error)
   })
 })
