@@ -5,6 +5,7 @@ const fail = (n: number): RIO<unknown, number> => {
   if (n >= 0) return RIO.failure(error)
   else return RIO.success(0)
 }
+const inc = (n: number) => n + 1
 const incM = (n: number) => RIO.success(n + 1)
 
 describe("RIO.success", () => {
@@ -48,5 +49,17 @@ describe("RIO#flatMap", () => {
     await expect(two.run(null)).rejects.toThrow(error)
     await expect(three.run(null)).rejects.toThrow(error)
     await expect(four.run(null)).rejects.toThrow(error)
+  })
+})
+
+describe("RIO#fromFunction", () => {
+  it("creates a new effect from a function", async () => {
+    const one = RIO.fromFunction(() => 1)
+    await expect(one.run(null)).resolves.toBe(1)
+  })
+
+  it("receives the environment as an argument", async () => {
+    const plusOne = RIO.fromFunction(inc)
+    await expect(plusOne.run(1)).resolves.toBe(2)
   })
 })
