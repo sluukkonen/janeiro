@@ -1,4 +1,4 @@
-import { Runtime } from "inspector"
+import { Runtime } from "./Runtime"
 
 /**
  * An effect that can be run with any environment.
@@ -9,9 +9,6 @@ export type IO<A> = RIO<unknown, A>
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type Result<T> = T extends RIO<unknown, infer A> ? A : never
-
-type Continuation<R, A, B> = (value: A) => RIO<R, B>
-type Stack = Continuation<unknown, unknown, unknown>[]
 
 type IntersectEnvironment<T extends readonly unknown[]> =
   // Is it a tuple?
@@ -141,7 +138,7 @@ export abstract class RIO<R, A> {
   }
 }
 
-const enum Tag {
+export const enum Tag {
   Done = 0,
   Success = 1,
   Failure = 2,
@@ -149,19 +146,19 @@ const enum Tag {
   FromFunction = 4,
 }
 
-class Done<A> extends RIO<unknown, A> {
+export class Done<A> extends RIO<unknown, A> {
   constructor(readonly value: A) {
     super(Tag.Done)
   }
 }
 
-class Success<A> extends RIO<unknown, A> {
+export class Success<A> extends RIO<unknown, A> {
   constructor(readonly value: A) {
     super(Tag.Success)
   }
 }
 
-class Failure extends RIO<unknown, never> {
+export class Failure extends RIO<unknown, never> {
   constructor(readonly error: unknown) {
     super(Tag.Failure)
   }
@@ -171,65 +168,17 @@ class Failure extends RIO<unknown, never> {
   }
 }
 
-class FlatMap<R, R1, A, B> extends RIO<R & R1, B> {
+export class FlatMap<R, R1, A, B> extends RIO<R & R1, B> {
   constructor(
     readonly effect: RIO<R, A>,
-    readonly continuation: Continuation<R1, A, B>
+    readonly continuation: (value: A) => RIO<R1, B>
   ) {
     super(Tag.FlatMap)
   }
 }
 
-class FromFunction<R, A> extends RIO<R, A> {
+export class FromFunction<R, A> extends RIO<R, A> {
   constructor(readonly fn: (env: R) => A) {
     super(Tag.FromFunction)
-  }
-}
-
-class Runtime {
-  private stack: Stack
-
-  constructor() {
-    this.stack = []
-  }
-
-  async run<R, A>(effect: RIO<R, A>, env: R): Promise<A> {
-    let current: RIO<unknown, unknown> = effect
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      switch (current.tag) {
-        case Tag.Done: {
-          const eff = current as Done<A>
-          return eff.value
-        }
-        case Tag.Success: {
-          const eff = current as Success<unknown>
-          current = this.runContinuation(eff.value)
-          break
-        }
-        case Tag.Failure: {
-          const eff = current as Failure
-          throw eff.error
-        }
-        case Tag.FlatMap: {
-          const eff = current as FlatMap<unknown, unknown, unknown, unknown>
-          this.stack.push(eff.continuation)
-          current = eff.effect
-          break
-        }
-        case Tag.FromFunction: {
-          const eff = current as FromFunction<unknown, unknown>
-          current = this.runContinuation(eff.fn(env))
-          break
-        }
-      }
-    }
-  }
-
-  private runContinuation(value: unknown): IO<unknown> {
-    const continuation = this.stack.pop()
-    if (!continuation) return new Done(value)
-    return continuation(value)
   }
 }

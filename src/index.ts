@@ -1,1 +1,1 @@
-export * from "./RIO"
+export { RIO, IO } from "./RIO"
