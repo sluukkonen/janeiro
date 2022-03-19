@@ -93,6 +93,22 @@ export abstract class RIO<R, A> {
   }
 
   /**
+   * Transforms the result of a successful effect by applying the function `fn` to it.
+   *
+   * @param fn A function that transforms the result.
+   * @see {@link RIO.flatMap}
+   * @example
+   *
+   * > const onePlusOne = RIO.success(1).map((n) => n + 1)
+   * undefined
+   * > await onePlusOne.run(null)
+   * 2
+   */
+  map<B>(fn: (value: A) => B): RIO<R, B> {
+    return new FlatMap(this, (value) => new Success(fn(value)))
+  }
+
+  /**
    * Lift a value into a successful effect.
    *
    * @example

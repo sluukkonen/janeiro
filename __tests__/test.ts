@@ -55,6 +55,30 @@ describe("RIO#flatMap", () => {
   })
 })
 
+describe("RIO#map", () => {
+  it("transform the result of an effect", async () => {
+    const two = RIO.success(1).map(inc)
+    const three = two.map(inc)
+    const four = three.map(inc)
+
+    await expect(two.run(null)).resolves.toBe(2)
+    await expect(three.run(null)).resolves.toBe(3)
+    await expect(four.run(null)).resolves.toBe(4)
+  })
+
+  it("throws an error if the function throws", async () => {
+    const one = RIO.success(1).map(throwError)
+    const two = RIO.success(1).map(inc).map(throwError)
+    const three = RIO.success(1).map(inc).map(inc).map(throwError)
+    const four = RIO.success(1).map(inc).map(throwError).map(inc)
+
+    await expect(one.run(null)).rejects.toThrow(error)
+    await expect(two.run(null)).rejects.toThrow(error)
+    await expect(three.run(null)).rejects.toThrow(error)
+    await expect(four.run(null)).rejects.toThrow(error)
+  })
+})
+
 describe("RIO#fromFunction", () => {
   it("creates a new effect from a synchronous function", async () => {
     const one = RIO.fromFunction(() => 1)
