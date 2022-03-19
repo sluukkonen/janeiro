@@ -10,10 +10,8 @@ import {
   Tag,
 } from "./RIO"
 
-type Stack = Array<(value: unknown) => RIO<unknown, unknown>>
-
 export class Runtime {
-  private stack: Stack
+  private stack: Array<(value: unknown) => RIO<unknown, unknown>>
 
   constructor() {
     this.stack = []
