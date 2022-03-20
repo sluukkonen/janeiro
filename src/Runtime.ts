@@ -38,7 +38,7 @@ export class Runtime {
         }
         case Tag.FlatMap: {
           const eff = current as FlatMap<unknown, unknown, unknown, unknown>
-          this.stack.push(eff.continuation)
+          this.stack.push(eff.fn)
           current = eff.effect
           break
         }

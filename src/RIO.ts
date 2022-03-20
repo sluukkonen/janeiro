@@ -204,7 +204,7 @@ export class Failure extends RIO<unknown, never> {
 export class FlatMap<R, R1, A, B> extends RIO<R & R1, B> {
   constructor(
     readonly effect: RIO<R, A>,
-    readonly continuation: (value: A) => RIO<R1, B>
+    readonly fn: (value: A) => RIO<R1, B>
   ) {
     super(Tag.FlatMap)
   }
