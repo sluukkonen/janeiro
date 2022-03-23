@@ -1,15 +1,6 @@
 import { RIO } from "../src"
 
 const error = new Error("Boom!")
-const throwError = () => {
-  throw error
-}
-const fail = (n: number): RIO<unknown, number> => {
-  if (n >= 0) return RIO.failure(error)
-  else return RIO.success(0)
-}
-const inc = (n: number) => n + 1
-const incM = (n: number) => RIO.success(n + 1)
 
 describe("RIO.success", () => {
   it("creates a successful effect", async () => {
@@ -26,94 +17,111 @@ describe("RIO.failure", () => {
 
   it("returns itself with flatMap", () => {
     const effect = RIO.failure(error)
-    expect(effect.flatMap(fail)).toBe(effect)
-    expect(effect.flatMap(fail).flatMap(fail)).toBe(effect)
+    expect(effect.flatMap(() => RIO.success(1))).toBe(effect)
+  })
+
+  it("returns itself with map", () => {
+    const effect = RIO.failure(error)
+    expect(effect.map(() => 1)).toBe(effect)
   })
 })
 
 describe("RIO#flatMap", () => {
   it("creates a new effect from the previous value", async () => {
-    const two = RIO.success(1).flatMap(incM)
-    const three = two.flatMap(incM)
-    const four = three.flatMap(incM)
-
-    await expect(two.run(null)).resolves.toBe(2)
-    await expect(three.run(null)).resolves.toBe(3)
-    await expect(four.run(null)).resolves.toBe(4)
+    const effect = RIO.success(1).flatMap((n) => RIO.success(n + 1))
+    await expect(effect.run(null)).resolves.toBe(2)
   })
 
   it("throws an error if the effect fails", async () => {
-    const one = RIO.success(1).flatMap(fail)
-    const two = RIO.success(1).flatMap(incM).flatMap(fail)
-    const three = RIO.success(1).flatMap(incM).flatMap(incM).flatMap(fail)
-    const four = RIO.success(1).flatMap(incM).flatMap(fail).flatMap(incM)
-
-    await expect(one.run(null)).rejects.toThrow(error)
-    await expect(two.run(null)).rejects.toThrow(error)
-    await expect(three.run(null)).rejects.toThrow(error)
-    await expect(four.run(null)).rejects.toThrow(error)
+    const effect = RIO.success(1).flatMap(() => RIO.failure(error))
+    await expect(effect.run(null)).rejects.toThrow(error)
   })
 })
 
 describe("RIO#map", () => {
   it("transform the result of an effect", async () => {
-    const two = RIO.success(1).map(inc)
-    const three = two.map(inc)
-    const four = three.map(inc)
-
-    await expect(two.run(null)).resolves.toBe(2)
-    await expect(three.run(null)).resolves.toBe(3)
-    await expect(four.run(null)).resolves.toBe(4)
+    const effect = RIO.success(1).map((n) => n + 1)
+    await expect(effect.run(null)).resolves.toBe(2)
   })
 
-  it("throws an error if the function throws", async () => {
-    const one = RIO.success(1).map(throwError)
-    const two = RIO.success(1).map(inc).map(throwError)
-    const three = RIO.success(1).map(inc).map(inc).map(throwError)
-    const four = RIO.success(1).map(inc).map(throwError).map(inc)
+  it("errors thrown cannot be caught", async () => {
+    const effect = RIO.success(1)
+      .map(() => {
+        throw error
+      })
+      .catch(() => RIO.success(2))
+    await expect(effect.run(null)).rejects.toThrow(error)
+  })
+})
 
-    await expect(one.run(null)).rejects.toThrow(error)
-    await expect(two.run(null)).rejects.toThrow(error)
-    await expect(three.run(null)).rejects.toThrow(error)
-    await expect(four.run(null)).rejects.toThrow(error)
+describe("RIO#catch", () => {
+  it("recovers from a failure, unwinding the stack", async () => {
+    const effect = RIO.success(1)
+      .flatMap(() => RIO.failure(error))
+      .map((n) => n + 1)
+      .catch(() => RIO.success(2))
+    await expect(effect.run(null)).resolves.toBe(2)
+  })
+
+  it("does nothing for successful effects", async () => {
+    const effect = RIO.success(1).catch(() => RIO.success(2))
+    await expect(effect.run(null)).resolves.toBe(1)
   })
 })
 
 describe("RIO#fromFunction", () => {
   it("creates a new effect from a synchronous function", async () => {
-    const one = RIO.fromFunction(() => 1)
-    await expect(one.run(null)).resolves.toBe(1)
+    const effect = RIO.fromFunction(() => 1)
+    await expect(effect.run(null)).resolves.toBe(1)
   })
 
   it("receives the environment as an argument", async () => {
-    const plusOne = RIO.fromFunction(inc)
-    await expect(plusOne.run(1)).resolves.toBe(2)
+    const effect = RIO.fromFunction((n: number) => n + 1)
+    await expect(effect.run(1)).resolves.toBe(2)
   })
 
   it("Resolves to a rejected promise if the function throws", async () => {
-    const boom = RIO.fromFunction(throwError)
-    await expect(boom.run(null)).rejects.toThrow(error)
+    const effect = RIO.fromFunction(() => {
+      throw error
+    })
+    await expect(effect.run(null)).rejects.toThrow(error)
+  })
+
+  it("errors thrown can be caught", async () => {
+    const effect = RIO.fromFunction(() => {
+      throw error
+    }).catch(() => RIO.success(1))
+    await expect(effect.run(null)).resolves.toBe(1)
   })
 })
 
 describe("RIO#fromPromise", () => {
   it("creates a new effect from an asynchronous function", async () => {
-    const one = RIO.fromPromise(async () => 1)
-    await expect(one.run(null)).resolves.toBe(1)
+    const effect = RIO.fromPromise(async () => 1)
+    await expect(effect.run(null)).resolves.toBe(1)
   })
 
   it("receives the environment as an argument", async () => {
-    const plusOne = RIO.fromPromise(async (env: number) => env + 1)
-    await expect(plusOne.run(1)).resolves.toBe(2)
+    const effect = RIO.fromPromise(async (env: number) => env + 1)
+    await expect(effect.run(1)).resolves.toBe(2)
   })
 
   it("resolves to a rejected promise if the promise rejects", async () => {
-    const boom = RIO.fromPromise(() => Promise.reject(error))
-    await expect(boom.run(null)).rejects.toThrow(error)
+    const effect = RIO.fromPromise(() => Promise.reject(error))
+    await expect(effect.run(null)).rejects.toThrow(error)
   })
 
   it("resolves to a rejected promise if the function throws", async () => {
-    const boom = RIO.fromPromise(throwError)
-    await expect(boom.run(null)).rejects.toThrow(error)
+    const effect = RIO.fromPromise(() => {
+      throw error
+    })
+    await expect(effect.run(null)).rejects.toThrow(error)
+  })
+
+  it("errors thrown can be caught", async () => {
+    const one = RIO.fromPromise(() => {
+      throw error
+    }).catch(() => RIO.success(1))
+    await expect(one.run(null)).resolves.toBe(1)
   })
 })

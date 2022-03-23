@@ -75,6 +75,8 @@ export abstract class RIO<R, A> {
   /**
    * Sequentially compose two effects, passing the result of this effect to the next.
    *
+   * Errors thrown in `fn` cannot be caught with {@link RIO.catch}.
+   *
    * @see {@link RIO.map}
    * @example
    *
@@ -83,7 +85,7 @@ export abstract class RIO<R, A> {
    * > await onePlusOne.run(null)
    * 2
    *
-   * > const fail = RIO.success(1).flatMap((n) => RIO.failure(new Error("Boom!"))
+   * > const fail = RIO.success(1).flatMap(() => RIO.failure(new Error("Boom!"))
    * undefined
    * > await fail.run(null)
    * Uncaught Error: Boom!
@@ -94,6 +96,8 @@ export abstract class RIO<R, A> {
 
   /**
    * Transforms the result of a successful effect by applying the function `fn` to it.
+   *
+   * Errors thrown in `fn` cannot be caught with {@link RIO.catch}.
    *
    * @param fn A function that transforms the result.
    * @see {@link RIO.flatMap}
@@ -106,6 +110,10 @@ export abstract class RIO<R, A> {
    */
   map<B>(fn: (value: A) => B): RIO<R, B> {
     return new FlatMap(this, (value) => new Success(fn(value)))
+  }
+
+  catch<R1, B>(fn: (error: unknown) => RIO<R1, B>): RIO<R & R1, A | B> {
+    return new Catch(this, fn)
   }
 
   /**
@@ -141,6 +149,8 @@ export abstract class RIO<R, A> {
    * Create an effect from a synchronous function. The function receives the
    * environment as the only argument.
    *
+   * If the function throws, the resulting effect fails.
+   *
    * @example
    *
    * > const random = RIO.fromFunction(Math.random)
@@ -156,6 +166,8 @@ export abstract class RIO<R, A> {
   /**
    * Create an effect from an asynchronous function returning a promise. The
    * function receives the environment as the only argument.
+   *
+   * If the function throws or returns a rejected promise, the resulting effect fails.
    *
    * @example
    *
@@ -175,8 +187,9 @@ export const enum Tag {
   Success = 1,
   Failure = 2,
   FlatMap = 3,
-  FromFunction = 4,
-  FromPromise = 5,
+  Catch = 4,
+  FromFunction = 5,
+  FromPromise = 6,
 }
 
 export class Done<A> extends RIO<unknown, A> {
@@ -196,7 +209,11 @@ export class Failure extends RIO<unknown, never> {
     super(Tag.Failure)
   }
 
-  override flatMap<R1, B>(): RIO<R1, B> {
+  override flatMap(): RIO<unknown, never> {
+    return this
+  }
+
+  override map(): RIO<unknown, never> {
     return this
   }
 }
@@ -207,6 +224,15 @@ export class FlatMap<R, R1, A, B> extends RIO<R & R1, B> {
     readonly fn: (value: A) => RIO<R1, B>
   ) {
     super(Tag.FlatMap)
+  }
+}
+
+export class Catch<R, R1, A, B> extends RIO<R & R1, A | B> {
+  constructor(
+    readonly effect: RIO<R, A>,
+    readonly fn: (error: unknown) => RIO<R1, B>
+  ) {
+    super(Tag.Catch)
   }
 }
 
