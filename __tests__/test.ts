@@ -39,7 +39,7 @@ describe("RIO#flatMap", () => {
 })
 
 describe("RIO#map", () => {
-  it("transform the result of an effect", async () => {
+  it("transforms the result of an effect", async () => {
     const effect = RIO.success(1).map((n) => n + 1)
     await expect(effect.run(null)).resolves.toBe(2)
   })
@@ -58,7 +58,7 @@ describe("RIO#catch", () => {
   it("recovers from a failure, unwinding the stack", async () => {
     const effect = RIO.success(1)
       .flatMap(() => RIO.failure(error))
-      .map((n) => n + 1)
+      .map(() => 999) // An extra continuation between the failure and catch
       .catch(() => RIO.success(2))
     await expect(effect.run(null)).resolves.toBe(2)
   })
@@ -80,7 +80,7 @@ describe("RIO#fromFunction", () => {
     await expect(effect.run(1)).resolves.toBe(2)
   })
 
-  it("Resolves to a rejected promise if the function throws", async () => {
+  it("resolves to a rejected promise if the function throws", async () => {
     const effect = RIO.fromFunction(() => {
       throw error
     })
