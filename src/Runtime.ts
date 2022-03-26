@@ -11,11 +11,9 @@ import {
   Tag,
 } from "./RIO"
 
-interface Continuation {
-  tag: Tag
-  effect: IO<unknown>
-  fn: (value: unknown) => IO<unknown>
-}
+type Continuation =
+  | FlatMap<unknown, unknown, unknown, unknown>
+  | Catch<unknown, unknown, unknown, unknown>
 
 export class Runtime {
   private stack: Continuation[]
