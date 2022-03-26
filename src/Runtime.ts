@@ -36,7 +36,11 @@ export class Runtime {
         }
         case Tag.Success: {
           const eff = current as Success<unknown>
-          current = this.runContinuation(eff.value)
+          try {
+            current = this.runContinuation(eff.value)
+          } catch (error) {
+            current = new Failure(error)
+          }
           break
         }
         case Tag.Failure: {

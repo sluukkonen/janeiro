@@ -36,6 +36,15 @@ describe("RIO#flatMap", () => {
     const effect = RIO.success(1).flatMap(() => RIO.failure(error))
     await expect(effect.run(null)).rejects.toThrow(error)
   })
+
+  it("errors thrown can be caught", async () => {
+    const effect = RIO.success(1)
+      .map(() => {
+        throw error
+      })
+      .catch(() => RIO.success(2))
+    await expect(effect.run(null)).resolves.toBe(2)
+  })
 })
 
 describe("RIO#map", () => {
@@ -44,13 +53,20 @@ describe("RIO#map", () => {
     await expect(effect.run(null)).resolves.toBe(2)
   })
 
-  it("errors thrown cannot be caught", async () => {
+  it("throws an error if the effect fails", async () => {
+    const effect = RIO.success(1).map(() => {
+      throw error
+    })
+    await expect(effect.run(null)).rejects.toThrow(error)
+  })
+
+  it("errors thrown can be caught", async () => {
     const effect = RIO.success(1)
       .map(() => {
         throw error
       })
       .catch(() => RIO.success(2))
-    await expect(effect.run(null)).rejects.toThrow(error)
+    await expect(effect.run(null)).resolves.toBe(2)
   })
 })
 
