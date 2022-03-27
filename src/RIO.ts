@@ -1,4 +1,4 @@
-import { Runtime } from "./Runtime"
+import { Fiber } from "./Fiber"
 
 /**
  * An effect that can be run with any environment.
@@ -69,7 +69,7 @@ export abstract class RIO<R, A> {
    * 1
    */
   run(env: R): Promise<A> {
-    return new Runtime().run(this, env)
+    return new Fiber().run(this, env)
   }
 
   /**

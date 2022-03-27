@@ -15,7 +15,7 @@ type Continuation =
   | FlatMap<unknown, unknown, unknown, unknown>
   | Catch<unknown, unknown, unknown, unknown>
 
-export class Runtime {
+export class Fiber {
   private stack: Continuation[]
 
   constructor() {
