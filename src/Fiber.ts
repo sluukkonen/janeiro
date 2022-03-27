@@ -29,21 +29,21 @@ export class Fiber {
     while (true) {
       switch (current.tag) {
         case Tag.Done: {
-          const eff = current as Done<A>
-          return eff.value
+          const done = current as Done<A>
+          return done.value
         }
         case Tag.Success: {
-          const eff = current as Success<unknown>
+          const success = current as Success<unknown>
           try {
-            current = this.runContinuation(eff.value)
+            current = this.runContinuation(success.value)
           } catch (error) {
             current = new Failure(error)
           }
           break
         }
         case Tag.Failure: {
-          const eff = current as Failure
-          current = this.handleError(eff.error)
+          const failure = current as Failure
+          current = this.handleError(failure.error)
           break
         }
         case Tag.FlatMap: {
@@ -91,18 +91,18 @@ export class Fiber {
           break
         }
         case Tag.FromFunction: {
-          const eff = current as FromFunction<unknown, unknown>
+          const fromFunction = current as FromFunction<unknown, unknown>
           try {
-            current = this.runContinuation(eff.fn(env))
+            current = this.runContinuation(fromFunction.fn(env))
           } catch (error) {
             current = new Failure(error)
           }
           break
         }
         case Tag.FromPromise: {
-          const eff = current as FromPromise<unknown, unknown>
+          const fromPromise = current as FromPromise<unknown, unknown>
           try {
-            current = this.runContinuation(await eff.fn(env))
+            current = this.runContinuation(await fromPromise.fn(env))
           } catch (error) {
             current = new Failure(error)
           }
