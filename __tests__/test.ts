@@ -39,7 +39,7 @@ describe("RIO#flatMap", () => {
 
   it("errors thrown can be caught", async () => {
     const effect = RIO.success(1)
-      .map(() => {
+      .flatMap(() => {
         throw error
       })
       .catch(() => RIO.success(2))
