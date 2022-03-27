@@ -47,8 +47,42 @@ export class Fiber {
           break
         }
         case Tag.FlatMap: {
-          const eff = current as FlatMap<unknown, unknown, unknown, unknown>
-          current = this.pushContinuation(eff)
+          const flatMap = current as FlatMap<unknown, unknown, unknown, unknown>
+          const inner = flatMap.effect
+
+          switch (inner.tag) {
+            case Tag.Success: {
+              const success = inner as Success<unknown>
+              try {
+                current = flatMap.fn(success.value)
+              } catch (error) {
+                current = new Failure(error)
+              }
+              break
+            }
+            case Tag.FromFunction: {
+              const fromFunction = inner as FromFunction<unknown, unknown>
+              try {
+                current = flatMap.fn(fromFunction.fn(env))
+              } catch (error) {
+                current = new Failure(error)
+              }
+              break
+            }
+            case Tag.FromPromise: {
+              const fromPromise = inner as FromFunction<unknown, unknown>
+              try {
+                current = flatMap.fn(await fromPromise.fn(env))
+              } catch (error) {
+                current = new Failure(error)
+              }
+              break
+            }
+            default: {
+              current = this.pushContinuation(flatMap)
+            }
+          }
+
           break
         }
         case Tag.Catch: {

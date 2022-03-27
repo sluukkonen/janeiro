@@ -45,6 +45,46 @@ describe("RIO#flatMap", () => {
       .catch(() => RIO.success(2))
     await expect(effect.run(null)).resolves.toBe(2)
   })
+
+  describe("inner flatMap interpreter", () => {
+    it("errors can be caught", async () => {
+      const effect = RIO.success(1)
+        .flatMap((n) => RIO.success(n + 1))
+        .flatMap(() => {
+          throw error
+        })
+
+      await expect(effect.run(null)).rejects.toThrow(error)
+    })
+
+    it("RIO.fromFunction", async () => {
+      const effect = RIO.fromFunction(() => 1).flatMap((n) =>
+        RIO.success(n + 1)
+      )
+      await expect(effect.run(null)).resolves.toBe(2)
+    })
+
+    it("RIO.fromFunction throwing", async () => {
+      const effect = RIO.fromFunction(() => {
+        throw error
+      }).flatMap((n) => RIO.success(n + 1))
+      await expect(effect.run(null)).rejects.toThrow(error)
+    })
+
+    it("RIO.fromPromise", async () => {
+      const effect = RIO.fromPromise(async () => 1).flatMap((n) =>
+        RIO.success(n + 1)
+      )
+      await expect(effect.run(null)).resolves.toBe(2)
+    })
+
+    it("RIO.fromPromise throwing", async () => {
+      const effect = RIO.fromPromise(async () => {
+        throw error
+      }).flatMap((n) => RIO.success(n + 1))
+      await expect(effect.run(null)).rejects.toThrow(error)
+    })
+  })
 })
 
 describe("RIO#map", () => {
